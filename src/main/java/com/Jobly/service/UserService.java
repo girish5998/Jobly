@@ -43,6 +43,7 @@ public class UserService {
         return userRepository.save(worker);
     }
 
+
     public AdminDashboardDTO getDashboardStatus(){
         long totalWorkers = userRepository.countByRole(Role.WORKER);
         long approvedWorkers = userRepository.countByRoleAndApproved(Role.WORKER,true);
@@ -59,5 +60,6 @@ public class UserService {
                 completedJobs
         );
     }
+
 
 }

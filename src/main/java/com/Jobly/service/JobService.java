@@ -1,5 +1,6 @@
 package com.Jobly.service;
 
+import com.Jobly.dto.OwnerDashboardDTO;
 import com.Jobly.entity.Job;
 import com.Jobly.entity.User;
 import com.Jobly.enums.JobStatus;
@@ -121,6 +122,72 @@ public class JobService {
                 .map(this::mapToDto)
                 .toList();
     }
+
+    public String deleteJob(Long jobId, Long ownerId) {
+        Job job = jobRepository.findById(jobId).orElseThrow(()-> new RuntimeException("Job not found"));
+
+        if(job.getOwner().getId()!= ownerId){
+            throw new RuntimeException("You can delete only your jobs");
+        }
+        jobRepository.delete(job);
+        return "Job deleted successfully";
+    }
+
+    public JobResponseDTO updateJob(Long jobId, Long ownerId, Job updatedJob) {
+        Job existingJob = jobRepository.findById(jobId).orElseThrow(()-> new RuntimeException("Job not found"));
+
+        if(existingJob.getOwner().getId()!=ownerId){
+            throw new RuntimeException("You can update only your job");
+        }
+        existingJob.setDescription(updatedJob.getDescription());
+        existingJob.setBudget(updatedJob.getBudget());
+        existingJob.setLocation(updatedJob.getLocation());
+        existingJob.setDuration(updatedJob.getDuration());
+        Job savedJob = jobRepository.save(existingJob);
+        return convertToDTO(savedJob);
+    }
+    private JobResponseDTO convertToDTO(Job job){
+        JobResponseDTO dto = new JobResponseDTO();
+        dto.setJobId(job.getJobId());
+        dto.setDescription(job.getDescription());
+        dto.setLocation(job.getLocation());
+        dto.setBudget(job.getBudget());
+        dto.setDuration(job.getDuration());
+        dto.setServiceType(job.getServiceType());
+        dto.setStatus(job.getStatus());
+        dto.setOwnerName(job.getOwner().getName());
+        return dto;
+    }
+    public JobResponseDTO cancelJob(Long jobId, Long ownerId) {
+        Job job = jobRepository.findById(jobId).orElseThrow(() -> new RuntimeException("Job not found"));
+
+        if (job.getOwner().getId() != ownerId) {
+            throw new RuntimeException("You can Delete only your job");
+        }
+        job.setStatus(JobStatus.CANCELLED);
+        Job savedJob = jobRepository.save(job);
+
+        return convertToDTO(savedJob);
+    }
+
+    public List<JobResponseDTO> getAssignedJobs(Long ownerId){
+        List<Job> jobs = jobRepository.findByOwnerIdAndStatus(ownerId,JobStatus.ASSIGNED);
+        return jobs.stream()
+                .map(this::convertToDTO)
+                .toList();
+    }
+
+    public OwnerDashboardDTO getOwnerDashboard(Long ownerId){
+        OwnerDashboardDTO dto = new OwnerDashboardDTO();
+        dto.setTotalJobs(jobRepository.countByOwnerId(ownerId));
+        dto.setPendingJobs(jobRepository.countByOwnerIdAndStatus(ownerId,JobStatus.PENDING));
+        dto.setAssignedJobs(jobRepository.countByOwnerIdAndStatus(ownerId,JobStatus.ASSIGNED));
+        dto.setCompletedJobs(jobRepository.countByOwnerIdAndStatus(ownerId,JobStatus.COMPLETED));
+        dto.setCompletedJobs(jobRepository.countByOwnerIdAndStatus(ownerId,JobStatus.CANCELLED));
+        return dto;
+    }
+
+
 }
 
 
